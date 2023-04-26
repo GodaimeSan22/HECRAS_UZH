@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import csv
 
 # URL-адреса сторінки з даними
-url = 'https://buvrtysa.gov.ua/newsite/?page_id=329&sn=1'
+url = 'http://gmc.uzhgorod.ua/fixdata.php?StNo=11'
 
 # Відправляємо GET-запит на сервер і зберігаємо відповідь
 response = requests.get(url)
@@ -12,17 +12,22 @@ response = requests.get(url)
 if response.status_code == 200:
     # Розбираємо HTML-сторінку з використанням BeautifulSoup
     soup = BeautifulSoup(response.text, 'html.parser')
-    # Отримуємо дані графіка
-    chart_script = soup.find_all('script')[1]
-    if chart_script.string:
-        chart_data = chart_script.string.split('\n')[5].replace('data: [','').replace('],','').replace('{','').replace('y:','').replace('a:','').replace('}','').split(',')
-        # Створюємо файл для зберігання даних
-        with open('chart_data.csv', mode='w', newline='') as file:
-            # Записуємо заголовки стовпців у файл
-            writer = csv.writer(file)
-            writer.writerow(['Час', 'Рівень води, см'])
-            # Перебираємо дані графіка та записуємо їх у файл
-            for i in range(0, len(chart_data), 2):
-                time = chart_data[i].strip().replace('\'', '')
-                water_level = chart_data[i+1].strip().replace('\'', '')
-                writer.writerow([time, water_level])
+    # Отримуємо таблицю з даними
+    table = soup.find('table')
+    # Отримуємо рядки таблиці
+    rows = table.find_all('tr')
+    # Створюємо файл для зберігання даних
+    with open('water_level_data.csv', mode='w', newline='') as file:
+        # Записуємо заголовки стовпців у файл
+        writer = csv.writer(file)
+        writer.writerow(['Дата', 'Час', 'Рівень води'])
+        # Перебираємо рядки таблиці та записуємо дані у файл
+        for row in rows[1:]:
+            # Отримуємо комірки рядка
+            cells = row.find_all('td')
+            # Отримуємо значення дати, часу та рівня води
+            date = cells[0].text.strip()
+            time = cells[1].text.strip()
+            water_level = cells[2].text.strip()
+            # Записуємо значення у файл
+            writer.writerow([date, time, water_level])
